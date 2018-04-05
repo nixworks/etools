@@ -95,7 +95,6 @@ class AgreementExportFlatSerializer(ExportSerializerMixin, AgreementExportSerial
     country_programme_name = serializers.CharField(
         label=_("Country Programme"),
         source='country_programme.name',
-        read_only=True
     )
 
     class Meta:

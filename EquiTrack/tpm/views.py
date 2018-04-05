@@ -2,11 +2,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from django.http import Http404
 from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 
 from easy_pdf.rendering import render_to_pdf_response
 from rest_framework import generics, viewsets, mixins
 from rest_framework.decorators import list_route, detail_route
-from rest_framework.filters import SearchFilter, OrderingFilter, DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 

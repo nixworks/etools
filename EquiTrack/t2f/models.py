@@ -508,7 +508,7 @@ class Expense(models.Model):
 
 class Deduction(models.Model):
     travel = models.ForeignKey('Travel', related_name='deductions', verbose_name=_('Deduction'))
-    date = models.DateField(verbose_name=_('Date'))
+    date = models.DateTimeField(verbose_name=_('Date'))
     breakfast = models.BooleanField(default=False, verbose_name=_('Breakfast'))
     lunch = models.BooleanField(default=False, verbose_name=_('Lunch'))
     dinner = models.BooleanField(default=False, verbose_name=_('Dinner'))

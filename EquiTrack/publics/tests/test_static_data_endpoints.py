@@ -62,7 +62,7 @@ class StaticDataEndpoints(BaseTenantTestCase):
         PublicsFundFactory()
         PublicsTravelExpenseTypeFactory()
 
-        with self.assertNumQueries(10):
+        with self.assertNumQueries(11):
             response = self.forced_auth_req('get', reverse('public:static'),
                                             user=self.unicef_staff)
 
@@ -124,7 +124,7 @@ class StaticDataEndpoints(BaseTenantTestCase):
     def test_currencies_view(self):
         factory.build_batch(PublicsCurrencyFactory, 3)
 
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(5):
             response = self.forced_auth_req('get', reverse('public:currencies'),
                                             user=self.unicef_staff)
 
