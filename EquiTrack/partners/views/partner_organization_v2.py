@@ -1,5 +1,6 @@
 import operator
 import functools
+from datetime import datetime
 
 from django.db import transaction
 from django.db.models import Q
@@ -188,8 +189,8 @@ class PartnerOrganizationHactAPIView(ListAPIView):
     Returns a list of Partners.
     """
     permission_classes = (IsAdminUser,)
-    queryset = PartnerOrganization.objects.select_related('planned_engagement').prefetch_related(
-        'staff_members', 'assessments').filter(Q(reported_cy__gt=0) | Q(total_ct_cy__gt=0))
+    queryset = PartnerOrganization.objects.active().select_related(
+        'planned_engagement').prefetch_related('staff_members', 'assessments')
     serializer_class = PartnerOrganizationHactSerializer
     renderer_classes = (r.JSONRenderer, PartnerOrganizationHactCsvRenderer)
 
@@ -339,3 +340,36 @@ class PartnerOrganizationDeleteView(DestroyAPIView):
         else:
             partner.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PartnerNotProgrammaticVisitCompliant(PartnerOrganizationListAPIView):
+    def get_queryset(self, format=None):
+        return PartnerOrganization.objects.self.not_programmatic_visit_compliant()
+
+
+class PartnerNotSpotCheckCompliant(PartnerOrganizationListAPIView):
+    def get_queryset(self, format=None):
+        return PartnerOrganization.objects.self.not_spot_check_compliant()
+
+
+class PartnerNotAssuranceCompliant(PartnerOrganizationListAPIView):
+    def get_queryset(self, format=None):
+        return PartnerOrganization.objects.not_assurance_compliant()
+
+
+class PartnerWithSpecialAuditCompleted(PartnerOrganizationListAPIView):
+    def get_queryset(self, format=None):
+        from audit.models import Engagement
+        return PartnerOrganization.objects.filter(
+            engagement__engagement_type=Engagement.TYPE_SPECIAL_AUDIT,
+            engagement__status=Engagement.FINAL,
+            engagement__date_of_draft_report_to_unicef__year=datetime.now().year)
+
+
+class PartnerWithScheduledAuditCompleted(PartnerOrganizationListAPIView):
+    def get_queryset(self, format=None):
+        from audit.models import Engagement
+        return PartnerOrganization.objects.filter(
+            engagement__engagement_type=Engagement.TYPE_AUDIT,
+            engagement__status=Engagement.FINAL,
+            engagement__date_of_draft_report_to_unicef__year=datetime.now().year)

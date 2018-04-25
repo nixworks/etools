@@ -9,7 +9,7 @@ from django.conf import settings
 from django.contrib.postgres.fields import JSONField, ArrayField
 from django.core.urlresolvers import reverse
 from django.db import models, connection, transaction
-from django.db.models import F, Sum, Max, Min, CharField, Count, Case, When
+from django.db.models import F, Sum, Max, Min, CharField, Count, Case, When, Q
 from django.db.models.signals import post_save, pre_delete
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils import six, timezone
@@ -205,6 +205,30 @@ def hact_default():
         },
         'outstanding_findings': 0
     }
+
+
+class PartnerOrganizationManager(models.Manager):
+
+    def get_queryset(self):
+        return super(PartnerOrganizationManager, self).get_queryset()
+
+    def active(self, *args, **kwargs):
+        return self.filter(Q(reported_cy__gt=0) | Q(total_ct_cy__gt=0), hidden=False, *args, **kwargs)
+
+    def not_programmatic_visit_compliant(self, *args, **kwargs):
+        return self.filter(reported_cy__gt=PartnerOrganization.CT_MR_AUDIT_TRIGGER_LEVEL,
+                           hact_values__programmatic_visits__completed__total__gt=0, *args, **kwargs)
+
+    def not_spot_check_compliant(self, *args, **kwargs):
+        return self.filter(net_ct_cy__gt=PartnerOrganization.CT_MR_AUDIT_TRIGGER_LEVEL,
+                           hact_values__spot_checks__completed__total__gt=0, *args, **kwargs)
+
+    def not_assurance_compliant(self, *args, **kwargs):
+        return self.filter(reported_cy__gt=PartnerOrganization.CT_MR_AUDIT_TRIGGER_LEVEL,
+                           hact_values__programmatic_visits__completed__total__gt=0,
+                           net_ct_cy__gt=PartnerOrganization.CT_MR_AUDIT_TRIGGER_LEVEL,
+                           hact_values__spot_checks__completed__total__gt=0,
+                           hact_values__audits__completed__gt=0, *args, **kwargs)
 
 
 @python_2_unicode_compatible
@@ -478,6 +502,7 @@ class PartnerOrganization(TimeStampedModel):
         verbose_name=_("Basis for Risk Rating"), max_length=50, default='', blank=True)
 
     tracker = FieldTracker()
+    objects = PartnerOrganizationManager()
 
     class Meta:
         ordering = ['name']
