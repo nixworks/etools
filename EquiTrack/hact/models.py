@@ -7,7 +7,7 @@ from decimal import Decimal
 
 from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Q
 from django.db.models.functions import Coalesce
 from django.utils.translation import ugettext_lazy as _
 
@@ -373,17 +373,49 @@ class AggregateHact(TimeStampedModel):
 
     @staticmethod
     def get_assurance_coverage():
-        return [
-            {
-                'label': 'IPs without required PV',
-                'value': PartnerOrganization.objects.not_programmatic_visit_compliant().count()
-            },
-            {
-                'label': 'IPs without required SC',
-                'value': PartnerOrganization.objects.not_spot_check_compliant().count()
-            },
-            {
-                'label': 'IPs without required assurance',
-                'value': PartnerOrganization.objects.not_assurance_compliant().count()
-            }
-        ]
+        qs = PartnerOrganization.objects.all()
+        return {
+            'coverage_by_number_of_ips': [
+                ['Coverage by number of IPs', 'Count'],
+                ['No Coverage', qs.active(hact_values__programmatic_visits__completed__total__gt=0,
+                                          hact_values__spot_checks__completed__total__gt=0,
+                                          hact_values__audits__completed__gt=0).count()],
+                ['Partially Met Requirements', qs.active(
+                    (
+                        Q(hact_values__programmatic_visits__completed__total__gt=0) |
+                        Q(hact_values__spot_checks__completed__total__gt=0) |
+                        Q(hact_values__spot_checks__completed__total__gt=0)
+                    ),
+                ).count()],
+                ['Met Requirements', qs.filter().count()],
+            ],
+            'coverage_by_cash_transfer': [
+                ['Coverage by Cash Transfer (USD) (Total)', 'Count'],
+                ['No Coverage', qs.active(hact_values__programmatic_visits__completed__total__gt=0,
+                                          hact_values__spot_checks__completed__total__gt=0,
+                                          hact_values__audits__completed__gt=0
+                                          ).aggregate(Sum('total_ct_cy'))['total_ct_cy__sum'] or 0()],
+                ['Partially Met Requirements', qs.active(
+                    (
+                        Q(hact_values__programmatic_visits__completed__total__gt=0) |
+                        Q(hact_values__spot_checks__completed__total__gt=0) |
+                        Q(hact_values__spot_checks__completed__total__gt=0)
+                    ),
+                ).aggregate(Sum('total_ct_cy'))['total_ct_cy__sum'] or 0()],
+                ['Met Requirements', qs.filter().aggregate(Sum('total_ct_cy'))['total_ct_cy__sum'] or 0()],
+            ],
+            'table': [
+                {
+                    'label': 'IPs without required PV',
+                    'value': PartnerOrganization.objects.not_programmatic_visit_compliant().count()
+                },
+                {
+                    'label': 'IPs without required SC',
+                    'value': PartnerOrganization.objects.not_spot_check_compliant().count()
+                },
+                {
+                    'label': 'IPs without required assurance',
+                    'value': PartnerOrganization.objects.not_assurance_compliant().count()
+                }
+            ]
+        }
