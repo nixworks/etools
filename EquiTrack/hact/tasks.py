@@ -23,8 +23,7 @@ def update_hact_values():
     for country in Country.objects.exclude(schema_name='public'):
         connection.set_tenant(country)
         for partner in PartnerOrganization.objects.all():
-            hact = json.loads(partner.hact_values) if isinstance(
-                partner.hact_values, (six.text_type, six.string_types, six.binary_type)) else partner.hact_values
+            hact = json.loads(partner.hact_values) if isinstance(partner.hact_values, str) else partner.hact_values
             audits = Audit.objects.filter(partner=partner, status=Engagement.FINAL,
                                           date_of_draft_report_to_unicef__year=datetime.now().year)
             hact['outstanding_findings'] = sum([
